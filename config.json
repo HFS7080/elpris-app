@@ -1,0 +1,6 @@
+{
+  "netselskab": "trefor_el-net_c",
+  "produkt": "clever",
+  "omraade": "DK1",
+  "api_base": "https://api.stromligning.dk/api/v1"
+}
