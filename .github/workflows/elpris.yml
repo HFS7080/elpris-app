@@ -3,18 +3,18 @@ name: Elpris - Daglig opdatering
 on:
   schedule:
     - cron: '0 12 * * *'  # Kl. 14 dansk tid (UTC+2)
-  workflow_dispatch:      # Tillader manuel kørsel
+  workflow_dispatch:
 
 jobs:
   run-elpris:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.2.0
         with:
           python-version: '3.11'
 
@@ -24,12 +24,24 @@ jobs:
       - name: Run elpris script
         run: python main.py
 
-      - name: Save result
+      - name: Send email notification
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: |
-          mkdir -p results
-          cp result_*.txt results/ 2>/dev/null || true
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git add results/
-          git commit -m "Gem elpris resultater $(date +'%Y-%m-%d')" || true
-          git push || true
+          sudo apt-get update -y
+          sudo apt-get install -y mailutils libsasl2-modules
+          echo "set from=$EMAIL_USER" >> ~/.mailrc
+          echo "set smtp=smtp://$EMAIL_USER:$EMAIL_PASSWORD@$SMTP_SERVER:$SMTP_PORT" >> ~/.mailrc
+          echo "set smtp-use-starttls" >> ~/.mailrc
+          RESULT=$(cat result_*.txt 2>/dev/null || echo "Kunne ikke hente elpriser")
+          echo "$RESULT" | mail -s "Elpris - Billigste timer i morgen" $EMAIL_TO
+
+      - name: Upload result as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: elpris-result
+          path: result_*.txt
