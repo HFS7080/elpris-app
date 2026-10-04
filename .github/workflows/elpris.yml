@@ -1,0 +1,35 @@
+name: Elpris - Daglig opdatering
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # Kl. 14 dansk tid (UTC+2)
+  workflow_dispatch:      # Tillader manuel kørsel
+
+jobs:
+  run-elpris:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run elpris script
+        run: python main.py
+
+      - name: Save result
+        run: |
+          mkdir -p results
+          cp result_*.txt results/ 2>/dev/null || true
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add results/
+          git commit -m "Gem elpris resultater $(date +'%Y-%m-%d')" || true
+          git push || true
