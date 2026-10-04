@@ -32,13 +32,29 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y mailutils libsasl2-modules
-          echo "set from=$EMAIL_USER" >> ~/.mailrc
-          echo "set smtp=smtp://$EMAIL_USER:$EMAIL_PASSWORD@$SMTP_SERVER:$SMTP_PORT" >> ~/.mailrc
-          echo "set smtp-use-starttls" >> ~/.mailrc
-          RESULT=$(cat result_*.txt 2>/dev/null || echo "Kunne ikke hente elpriser")
-          echo "$RESULT" | mail -s "Elpris - Billigste timer i morgen" $EMAIL_TO
+          python3 -c "
+          import smtplib
+          from email.mime.text import MIMEText
+          from email.mime.multipart import MIMEMultipart
+
+          # Læs resultatet
+          with open('result_20261005.txt', 'r') as f:
+              result = f.read()
+
+          # Opret email
+          msg = MIMEMultipart()
+          msg['From'] = '$EMAIL_USER'
+          msg['To'] = '$EMAIL_TO'
+          msg['Subject'] = 'Elpris - Billigste timer i morgen'
+          msg.attach(MIMEText(result, 'plain', 'utf-8'))
+
+          # Send email
+          with smtplib.SMTP('$SMTP_SERVER', $SMTP_PORT) as server:
+              server.starttls()
+              server.login('$EMAIL_USER', '$EMAIL_PASSWORD')
+              server.send_message(msg)
+          print('Email sendt succesfuldt!')
+          "
 
       - name: Upload result as artifact
         uses: actions/upload-artifact@v4
