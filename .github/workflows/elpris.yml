@@ -32,32 +32,13 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: |
-          python3 -c "
-          import smtplib
-          from email.mime.text import MIMEText
-          from email.mime.multipart import MIMEMultipart
+          python send_email.py "$SMTP_SERVER" "$SMTP_PORT" "$EMAIL_USER" "$EMAIL_PASSWORD" "$EMAIL_TO"
 
-          # Læs resultatet
-          with open('result_20261005.txt', 'r') as f:
-              result = f.read()
-
-          # Opret email
-          msg = MIMEMultipart()
-          msg['From'] = '$EMAIL_USER'
-          msg['To'] = '$EMAIL_TO'
-          msg['Subject'] = 'Elpris - Billigste timer i morgen'
-          msg.attach(MIMEText(result, 'plain', 'utf-8'))
-
-          # Send email
-          with smtplib.SMTP('$SMTP_SERVER', $SMTP_PORT) as server:
-              server.starttls()
-              server.login('$EMAIL_USER', '$EMAIL_PASSWORD')
-              server.send_message(msg)
-          print('Email sendt succesfuldt!')
-          "
-
-      - name: Upload result as artifact
+      - name: Upload results
         uses: actions/upload-artifact@v4
+        if: always()  # Upload selv om tidligere steps fejler
         with:
-          name: elpris-result
-          path: result_*.txt
+          name: elpris-results
+          path: |
+            result_*.txt
+            email_error.txt
